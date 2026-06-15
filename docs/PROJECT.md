@@ -184,9 +184,9 @@ High-level plan; details (observation encoding, architecture, loss) to be decide
 differenzler/
 ├── docs/
 │   ├── GAME_RULES.md       ← authoritative rules
-│   └── PROJECT.md          ← this file
-├── assets/
-│   └── cards/              ← sprite sheet (4 rows × 9 columns)
+│   ├── PROJECT.md          ← this file
+│   └── UI.md               ← pygame assets & layout
+├── resources/              ← table, carpet, cards-german, suits-german
 ├── game/                   ← pure rules engine (no pygame/torch)
 │   ├── cards.py
 │   ├── deck.py
@@ -228,7 +228,7 @@ differenzler/
 | Game engine (`game/`) | **Done** (milestone 1)                |
 | pytest suite        | **Done** (`tests/game/`)                |
 | Player types        | **Partial** — random + heuristic (milestone 2) |
-| pygame UI           | Not yet implemented (milestone 4)       |
+| pygame UI           | **Playable** — human vs 3× heuristic ([UI.md](docs/UI.md)) |
 | Neural net / PyTorch| Planned (milestones 5–6)                |
 
 ---

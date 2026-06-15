@@ -6,15 +6,24 @@ Swiss card game **Differenzler** for four players — rules engine, heuristic bo
 
 - [Game rules](docs/GAME_RULES.md)
 - [Project overview & roadmap](docs/PROJECT.md)
+- [UI / pygame](docs/UI.md)
 
 ## Setup
 
 ```powershell
 cd differenzler
-pip install -e ".[dev]"
+pip install -e ".[dev,ui]"
 ```
 
 Requires **Python 3.9+**.
+
+## Play (visualization)
+
+```powershell
+python -m ui.pygame_app
+```
+
+See [docs/UI.md](docs/UI.md) for assets and layout.
 
 ## Run simulations
 
@@ -49,5 +58,6 @@ game/       Pure rules engine
 players/    Random, heuristic (and later neural) bots
 runner/     Match loop and headless simulation
 docs/       Rules and architecture
-assets/     Card sprite sheet
+resources/  Table, carpet, cards-german, suits-german
+ui/         Pygame visualization
 ```

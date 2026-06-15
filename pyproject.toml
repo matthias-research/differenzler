@@ -10,11 +10,16 @@ readme = "docs/PROJECT.md"
 requires-python = ">=3.9"
 dependencies = []
 
+[project.optional-dependencies]
+ui = ["pygame>=2.5"]
+dev = ["pytest>=7"]
+
 [project.scripts]
 differenzler-sim = "runner.simulate:main"
+differenzler-play = "ui.pygame_app:main"
 
 [tool.setuptools.packages.find]
-include = ["game*", "players*", "runner*"]
+include = ["game*", "players*", "runner*", "ui*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
