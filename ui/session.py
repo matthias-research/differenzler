@@ -6,7 +6,7 @@ import random
 from dataclasses import dataclass, field
 from enum import Enum, auto
 
-from game.constants import MAX_POINTS, PLAYER_COUNT, ROUNDS_PER_MATCH
+from game.constants import PLAYER_COUNT, ROUNDS_PER_MATCH
 from game.deck import deal, full_deck, shuffle_deck
 from game.scoring import collected_points, match_penalties
 from game.cards import sort_hand
@@ -266,7 +266,20 @@ class PlaySession:
         opponents = [self.match_penalties[s] for s in range(1, PLAYER_COUNT)]
         return min(opponents) if opponents else 0
 
-    def status_line(self, prediction_text: str) -> str:
+    def human_round_summary(self) -> tuple[int, int, int, int] | None:
+        if self.ui_phase is not UiPhase.ROUND_END:
+            return None
+        rnd = self.round_state
+        if rnd is None:
+            return None
+        predicted = rnd.predictions[HUMAN_SEAT]
+        if predicted is None:
+            predicted = 0
+        collected = self.last_round_collected[HUMAN_SEAT]
+        difference = self.last_round_penalties[HUMAN_SEAT]
+        return self.round_index, predicted, collected, difference
+
+    def status_line(self) -> str:
         if self.ui_phase is UiPhase.MATCH_END:
             winner = min(range(PLAYER_COUNT), key=lambda s: self.match_penalties[s])
             if winner == HUMAN_SEAT:
@@ -277,26 +290,19 @@ class PlaySession:
             )
 
         if self.ui_phase is UiPhase.ROUND_END:
-            return (
-                f"Round {self.round_index}: penalty {self.last_round_penalties[HUMAN_SEAT]} "
-                f"(collected {self.last_round_collected[HUMAN_SEAT]}) — Space for next round"
-            )
+            return ""
 
         rnd = self.round_state
         if rnd is None:
             return ""
 
         if self.needs_human_prediction():
-            text = prediction_text or "0"
-            return f"Your prediction (0–{MAX_POINTS}): {text} — Enter to confirm"
+            return ""
 
         if self.needs_human_play():
-            return f"Trick {rnd.trick_number}/9 — click a highlighted card"
+            return ""
 
-        if self.pause is PauseReason.BEFORE_TRICK_CLEAR:
-            return f"Trick {rnd.trick_number}/9 complete — click to collect"
+        if self.pause is not PauseReason.NONE:
+            return ""
 
-        if self.pause is PauseReason.AFTER_PLAY:
-            return f"Trick {rnd.trick_number}/9 — click to continue"
-
-        return f"Round {self.round_index + 1}/{ROUNDS_PER_MATCH} — trick {rnd.trick_number}/9"
+        return ""

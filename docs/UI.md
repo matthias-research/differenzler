@@ -15,11 +15,11 @@ python -m ui.pygame_app
 
 | Action | Input |
 |--------|--------|
-| Prediction (0–157) | Type digits, **Enter** |
+| Prediction (0–157) | Dialog: type digits, **Enter** or click **OK** |
 | Play a card | Click a **highlighted** card in your hand |
 | Continue after a bot play | Click anywhere on the table (not needed when it is your turn) |
 | Collect trick | Click once when all four cards are shown (winner highlighted) |
-| Next round | **Enter** or **Space** on round summary |
+| Next round | **Enter** or click **OK** in round summary dialog |
 | Quit | **ESC** (or after match ends) |
 
 ---
@@ -66,6 +66,8 @@ Trick cards on carpet use seat anchors: bottom / right / top / left.
 | `ui/session.py` | Match loop, bot turns, human input |
 | `ui/layout.py` | Draw table, hit-testing for hand |
 | `ui/pygame_app.py` | Event loop |
+| `ui/prediction_dialog.py` | Prediction modal |
+| `ui/round_summary_dialog.py` | Round summary modal |
 | `ui/assets.py` | Load bitmaps |
 
 ---

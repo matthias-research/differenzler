@@ -6,10 +6,11 @@ import sys
 
 import pygame
 
-from game.constants import MAX_POINTS
 from ui.assets import load_images
 from ui.layout import TableLayout, card_id_at, draw_table
-from ui.session import HUMAN_SEAT, PlaySession, UiPhase
+from ui.prediction_dialog import PredictionDialog
+from ui.round_summary_dialog import RoundSummaryDialog
+from ui.session import PlaySession, UiPhase
 
 
 def run() -> None:
@@ -21,35 +22,39 @@ def run() -> None:
 
     session = PlaySession()
     layout = TableLayout()
-    prediction_text = ""
+    prediction_dialog = PredictionDialog()
+    round_summary_dialog = RoundSummaryDialog()
 
     running = True
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            elif event.type == pygame.KEYDOWN:
+                continue
+
+            if session.needs_human_prediction():
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    running = False
+                    continue
+                confirmed = prediction_dialog.handle_event(event)
+                if confirmed is not None:
+                    session.submit_prediction(confirmed)
+                    prediction_dialog.reset()
+                continue
+
+            if session.ui_phase is UiPhase.ROUND_END:
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    running = False
+                    continue
+                if round_summary_dialog.handle_event(event):
+                    session.acknowledge_round_end()
+                continue
+
+            if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     running = False
-                elif event.key == pygame.K_RETURN:
-                    if session.needs_human_prediction():
-                        try:
-                            value = int(prediction_text or "0")
-                            if 0 <= value <= MAX_POINTS:
-                                session.submit_prediction(value)
-                                prediction_text = ""
-                        except ValueError:
-                            prediction_text = ""
-                    elif session.ui_phase is UiPhase.ROUND_END:
-                        session.acknowledge_round_end()
-                    elif session.ui_phase is UiPhase.MATCH_END:
-                        running = False
-                elif event.key == pygame.K_BACKSPACE:
-                    prediction_text = prediction_text[:-1]
-                elif event.unicode.isdigit() and session.needs_human_prediction():
-                    candidate = prediction_text + event.unicode
-                    if int(candidate) <= MAX_POINTS:
-                        prediction_text = candidate
+                elif event.key == pygame.K_RETURN and session.ui_phase is UiPhase.MATCH_END:
+                    running = False
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if session.is_paused():
                     session.acknowledge_pause()
@@ -62,8 +67,8 @@ def run() -> None:
         prediction = session.human_prediction()
         if prediction is not None:
             score_right = prediction
-        elif session.needs_human_prediction() and prediction_text:
-            score_right = int(prediction_text)
+        elif session.needs_human_prediction() and prediction_dialog.text:
+            score_right = int(prediction_dialog.text)
         else:
             score_right = 0
 
@@ -77,9 +82,16 @@ def run() -> None:
             session.human_legal_plays() if session.needs_human_play() else [],
             score_left,
             score_right,
-            session.status_line(prediction_text),
+            session.status_line(),
             session.trick_winner_seat(),
         )
+        if session.needs_human_prediction():
+            prediction_dialog.draw(screen)
+        elif summary := session.human_round_summary():
+            round_number, predicted, collected, difference = summary
+            round_summary_dialog.draw(
+                screen, round_number, predicted, collected, difference
+            )
         pygame.display.flip()
         clock.tick(60)
 

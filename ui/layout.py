@@ -200,9 +200,10 @@ def draw_table(
         )
         layout.hand_hit_targets.append((card_id, rect))
 
-    font = pygame.font.SysFont("segoeui", 22)
-    status = font.render(status_line, True, (240, 240, 240))
-    screen.blit(status, status.get_rect(midtop=(WINDOW_WIDTH // 2, carpet_rect.top + 24)))
+    if status_line:
+        font = pygame.font.SysFont("segoeui", 22)
+        status = font.render(status_line, True, (240, 240, 240))
+        screen.blit(status, status.get_rect(midtop=(WINDOW_WIDTH // 2, carpet_rect.top + 24)))
 
 
 def card_id_at(layout: TableLayout, pos: tuple[int, int]) -> int | None:
