@@ -54,3 +54,13 @@ def card_points(card_id: int, trump_farbe: int) -> int:
     if is_trump(card_id, trump_farbe):
         return POINTS_TRUMP[card_rank]
     return POINTS_NON_TRUMP[card_rank]
+
+
+def sort_hand(hand: list[int], trump_farbe: int) -> list[int]:
+    """Sort for display: trump Farbe first, then other Farben 0–3, ranks low to high."""
+
+    def key(card_id: int) -> tuple[int, int, int]:
+        f = farbe(card_id)
+        return (0 if f == trump_farbe else 1, f, rank(card_id))
+
+    return sorted(hand, key=key)

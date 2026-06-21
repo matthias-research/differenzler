@@ -171,7 +171,7 @@ name:     6,  7,  8, 10, Ober, König, Ass, Nell, Bauer
 Implementation lookup (strength level 0–8 for each rank):
 
 ```
-TRUMP_STRENGTH = [0, 1, 2, 4, 6, 7, 8, 3, 5]  // indexed by rank
+TRUMP_STRENGTH = [0, 1, 2, 7, 3, 8, 4, 5, 6]  // indexed by rank
 ```
 
 ---
@@ -271,7 +271,7 @@ These constants should live in the game core and match this document exactly:
 const FARBE_NAMES = ['Schellen', 'Schilten', 'Rosen', 'Eicheln'];
 const RANK_NAMES  = ['6', '7', '8', '9', '10', 'Under', 'Ober', 'König', 'Ass'];
 
-const TRUMP_STRENGTH     = [0, 1, 2, 4, 6, 7, 8, 3, 5];
+const TRUMP_STRENGTH     = [0, 1, 2, 7, 3, 8, 4, 5, 6];
 const POINTS_TRUMP       = [0, 0, 0, 14, 10, 20, 3, 4, 11];
 const POINTS_NON_TRUMP   = [0, 0, 0, 0, 10, 2, 3, 4, 11];
 

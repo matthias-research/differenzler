@@ -61,3 +61,14 @@ def test_low_trump_beats_high_side_card():
         (3, card(3, 6)),
     ]
     assert trick_winner(plays, trump) == 1
+
+
+def test_nell_beats_ten_of_trump():
+    trump = 1  # Schilten
+    plays = [
+        (0, card(trump, 4)),  # 10 of trump
+        (1, card(2, 5)),
+        (2, card(trump, 3)),  # Nell
+        (3, card(3, 0)),
+    ]
+    assert trick_winner(plays, trump) == 2

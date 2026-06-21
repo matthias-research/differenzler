@@ -51,13 +51,12 @@ def run() -> None:
                     if int(candidate) <= MAX_POINTS:
                         prediction_text = candidate
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if session.needs_human_play():
+                if session.is_paused():
+                    session.acknowledge_pause()
+                elif session.needs_human_play():
                     card_id = card_id_at(layout, event.pos)
                     if card_id is not None and card_id in session.human_legal_plays():
                         session.submit_play(card_id)
-
-        if session.tick():
-            pygame.time.delay(280)
 
         score_left = session.human_collected_this_round()
         prediction = session.human_prediction()
@@ -79,6 +78,7 @@ def run() -> None:
             score_left,
             score_right,
             session.status_line(prediction_text),
+            session.trick_winner_seat(),
         )
         pygame.display.flip()
         clock.tick(60)

@@ -9,13 +9,15 @@ from ui.session import PlaySession, UiPhase
 
 def _play_human_turns(session: PlaySession) -> None:
     while session.ui_phase is UiPhase.PLAYING:
+        if session.is_paused():
+            session.acknowledge_pause()
+            continue
         if session.needs_human_prediction():
             session.submit_prediction(0)
         elif session.needs_human_play():
             session.submit_play(session.human_legal_plays()[0])
         else:
-            if not session.tick():
-                break
+            break
 
 
 def test_session_completes_one_round():

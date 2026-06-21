@@ -17,6 +17,8 @@ python -m ui.pygame_app
 |--------|--------|
 | Prediction (0–157) | Type digits, **Enter** |
 | Play a card | Click a **highlighted** card in your hand |
+| Continue after a bot play | Click anywhere on the table (not needed when it is your turn) |
+| Collect trick | Click once when all four cards are shown (winner highlighted) |
 | Next round | **Enter** or **Space** on round summary |
 | Quit | **ESC** (or after match ends) |
 

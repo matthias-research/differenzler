@@ -9,6 +9,7 @@ from enum import Enum, auto
 from game.constants import MAX_POINTS, PLAYER_COUNT, ROUNDS_PER_MATCH
 from game.deck import deal, full_deck, shuffle_deck
 from game.scoring import collected_points, match_penalties
+from game.cards import sort_hand
 from game.state import Phase, RoundState, create_round, next_seat
 from players.heuristic_player import HeuristicPlayer
 from players.observation import Observation
@@ -20,6 +21,12 @@ class UiPhase(Enum):
     PLAYING = auto()
     ROUND_END = auto()
     MATCH_END = auto()
+
+
+class PauseReason(Enum):
+    NONE = auto()
+    AFTER_PLAY = auto()
+    BEFORE_TRICK_CLEAR = auto()
 
 
 @dataclass
@@ -36,6 +43,9 @@ class PlaySession:
     last_round_penalties: list[int] = field(default_factory=lambda: [0, 0, 0, 0])
     last_round_collected: list[int] = field(default_factory=lambda: [0, 0, 0, 0])
     _bots: list[HeuristicPlayer] = field(default_factory=list)
+    pause: PauseReason = PauseReason.NONE
+    display_trick: list[tuple[int, int]] = field(default_factory=list)
+    _trick_awaiting_clear: bool = False
 
     def __post_init__(self) -> None:
         self._bots = [HeuristicPlayer(self.rng) for _ in range(PLAYER_COUNT - 1)]
@@ -48,6 +58,9 @@ class PlaySession:
         hands = deal(deck)
         trump = self.rng.randint(0, 3)
         self.round_state = create_round(hands, trump, self.first_leader)
+        self.display_trick = []
+        self.pause = PauseReason.NONE
+        self._trick_awaiting_clear = False
 
     def _next_prediction_seat(self) -> int | None:
         rnd = self.round_state
@@ -83,7 +96,29 @@ class PlaySession:
             legal,
         )
         card_id = self._bot_for_seat(seat).choose_play(obs)
+        self._play_card(seat, card_id)
+
+    def _play_card(self, seat: int, card_id: int) -> None:
+        rnd = self.round_state
+        if rnd is None:
+            return
+        completing = len(rnd.current_trick) == PLAYER_COUNT - 1
+        if completing:
+            self.display_trick = list(rnd.current_trick) + [(seat, card_id)]
         rnd.play_card(seat, card_id)
+        if completing:
+            self._trick_awaiting_clear = True
+            self.pause = PauseReason.BEFORE_TRICK_CLEAR
+        else:
+            self.display_trick = list(rnd.current_trick)
+            if self._human_is_next_to_play():
+                self.pause = PauseReason.NONE
+            else:
+                self.pause = PauseReason.AFTER_PLAY
+
+    def _human_is_next_to_play(self) -> bool:
+        rnd = self.round_state
+        return rnd is not None and rnd.phase is Phase.PLAY and rnd.current_player() == HUMAN_SEAT
 
     def _finish_round(self) -> None:
         rnd = self.round_state
@@ -102,7 +137,7 @@ class PlaySession:
             self.ui_phase = UiPhase.ROUND_END
 
     def _advance_bots(self) -> None:
-        while self.ui_phase is UiPhase.PLAYING:
+        while self.ui_phase is UiPhase.PLAYING and self.pause is PauseReason.NONE:
             rnd = self.round_state
             if rnd is None:
                 return
@@ -122,43 +157,26 @@ class PlaySession:
                 if seat == HUMAN_SEAT:
                     return
                 self._bot_play(seat)
-                continue
+                return
 
             if rnd.phase is Phase.DONE:
                 self._finish_round()
                 return
 
-    def tick(self) -> bool:
-        """Advance one bot action per call (for animation). Returns True if something changed."""
-        if self.ui_phase is not UiPhase.PLAYING:
-            return False
-        if self.needs_human_prediction() or self.needs_human_play():
-            return False
+    def is_paused(self) -> bool:
+        return self.pause is not PauseReason.NONE
 
+    def acknowledge_pause(self) -> None:
+        if self.pause is PauseReason.NONE:
+            return
+        self.display_trick = []
+        self._trick_awaiting_clear = False
+        self.pause = PauseReason.NONE
         rnd = self.round_state
-        if rnd is None:
-            return False
-
-        if rnd.phase is Phase.PREDICT:
-            seat = self._next_prediction_seat()
-            if seat is None:
-                rnd.start_play()
-                return True
-            if seat == HUMAN_SEAT:
-                return False
-            self._bot_predict(seat)
-            return True
-
-        if rnd.phase is Phase.PLAY:
-            seat = rnd.current_player()
-            if seat == HUMAN_SEAT:
-                return False
-            self._bot_play(seat)
-            if rnd.phase is Phase.DONE:
-                self._finish_round()
-            return True
-
-        return False
+        if rnd is not None and rnd.phase is Phase.DONE:
+            self._finish_round()
+            return
+        self._advance_bots()
 
     def needs_human_prediction(self) -> bool:
         rnd = self.round_state
@@ -167,6 +185,8 @@ class PlaySession:
         return self._next_prediction_seat() == HUMAN_SEAT
 
     def needs_human_play(self) -> bool:
+        if self.is_paused():
+            return False
         rnd = self.round_state
         if rnd is None or rnd.phase is not Phase.PLAY:
             return False
@@ -187,8 +207,7 @@ class PlaySession:
         rnd = self.round_state
         if rnd is None:
             raise ValueError("no active round")
-        rnd.play_card(HUMAN_SEAT, card_id)
-        self._advance_bots()
+        self._play_card(HUMAN_SEAT, card_id)
 
     def acknowledge_round_end(self) -> None:
         if self.ui_phase is not UiPhase.ROUND_END:
@@ -202,7 +221,7 @@ class PlaySession:
         rnd = self.round_state
         if rnd is None:
             return []
-        return list(rnd.hands[HUMAN_SEAT])
+        return sort_hand(list(rnd.hands[HUMAN_SEAT]), rnd.trump)
 
     def human_legal_plays(self) -> list[int]:
         rnd = self.round_state
@@ -211,10 +230,20 @@ class PlaySession:
         return rnd.legal_plays_for(HUMAN_SEAT)
 
     def current_trick(self) -> list[tuple[int, int]]:
+        if self.display_trick:
+            return list(self.display_trick)
         rnd = self.round_state
         if rnd is None:
             return []
         return list(rnd.current_trick)
+
+    def trick_winner_seat(self) -> int | None:
+        if self.pause is not PauseReason.BEFORE_TRICK_CLEAR:
+            return None
+        rnd = self.round_state
+        if rnd is None:
+            return None
+        return rnd.last_trick_winner
 
     def trump_farbe(self) -> int:
         rnd = self.round_state
@@ -263,5 +292,11 @@ class PlaySession:
 
         if self.needs_human_play():
             return f"Trick {rnd.trick_number}/9 — click a highlighted card"
+
+        if self.pause is PauseReason.BEFORE_TRICK_CLEAR:
+            return f"Trick {rnd.trick_number}/9 complete — click to collect"
+
+        if self.pause is PauseReason.AFTER_PLAY:
+            return f"Trick {rnd.trick_number}/9 — click to continue"
 
         return f"Round {self.round_index + 1}/{ROUNDS_PER_MATCH} — trick {rnd.trick_number}/9"

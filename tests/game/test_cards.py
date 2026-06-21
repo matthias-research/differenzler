@@ -10,6 +10,7 @@ from game.cards import (
     is_bauer,
     is_trump,
     rank,
+    sort_hand,
 )
 from game.constants import POINTS_NON_TRUMP, POINTS_TRUMP, TRUMP_STRENGTH
 
@@ -75,3 +76,15 @@ def test_is_trump():
     trump = 1
     assert is_trump(card(trump, 4), trump)
     assert not is_trump(card(2, 4), trump)
+
+
+def test_sort_hand_trump_first_then_farbe_and_rank():
+    trump = 2
+    hand = [card(0, 8), card(2, 5), card(2, 0), card(1, 4), card(3, 1)]
+    assert sort_hand(hand, trump) == [
+        card(2, 0),
+        card(2, 5),
+        card(0, 8),
+        card(1, 4),
+        card(3, 1),
+    ]
