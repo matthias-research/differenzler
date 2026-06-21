@@ -7,7 +7,10 @@ from dataclasses import dataclass, field
 import pygame
 
 from game.constants import MAX_POINTS
-from ui.layout import WINDOW_HEIGHT, WINDOW_WIDTH
+from ui.assets import suit_sprite_rect
+from ui.layout import WINDOW_HEIGHT, WINDOW_WIDTH, scale_to_height
+
+TRUMP_ICON_HEIGHT = 40
 
 
 @dataclass
@@ -43,7 +46,12 @@ class PredictionDialog:
                 return self.confirm()
         return None
 
-    def draw(self, screen: pygame.Surface) -> None:
+    def draw(
+        self,
+        screen: pygame.Surface,
+        trump_farbe: int,
+        suits_sheet: pygame.Surface,
+    ) -> None:
         overlay = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 140))
         screen.blit(overlay, (0, 0))
@@ -55,6 +63,10 @@ class PredictionDialog:
 
         pygame.draw.rect(screen, (28, 32, 28), panel, border_radius=16)
         pygame.draw.rect(screen, (90, 90, 90), panel, width=2, border_radius=16)
+
+        suit_src = suit_sprite_rect(trump_farbe, suits_sheet.get_width(), suits_sheet.get_height())
+        trump = scale_to_height(suits_sheet.subsurface(suit_src), TRUMP_ICON_HEIGHT)
+        screen.blit(trump, trump.get_rect(topright=(panel.right - 20, panel.top + 16)))
 
         title_font = pygame.font.SysFont("segoeui", 26, bold=True)
         title = title_font.render("Your prediction", True, (245, 245, 245))

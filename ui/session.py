@@ -13,8 +13,11 @@ from game.cards import sort_hand
 from game.state import Phase, RoundState, create_round, next_seat
 from players.heuristic_player import HeuristicPlayer
 from players.observation import Observation
+from ui.round_summary_dialog import PlayerRoundResult
 
 HUMAN_SEAT = 0
+
+ROUND_PLAYER_NAMES = ("You", "Player 1", "Player 2", "Player 3")
 
 
 class UiPhase(Enum):
@@ -266,18 +269,27 @@ class PlaySession:
         opponents = [self.match_penalties[s] for s in range(1, PLAYER_COUNT)]
         return min(opponents) if opponents else 0
 
-    def human_round_summary(self) -> tuple[int, int, int, int] | None:
+    def round_summary(self) -> tuple[int, list[PlayerRoundResult]] | None:
         if self.ui_phase is not UiPhase.ROUND_END:
             return None
         rnd = self.round_state
         if rnd is None:
             return None
-        predicted = rnd.predictions[HUMAN_SEAT]
-        if predicted is None:
-            predicted = 0
-        collected = self.last_round_collected[HUMAN_SEAT]
-        difference = self.last_round_penalties[HUMAN_SEAT]
-        return self.round_index, predicted, collected, difference
+        players = []
+        for seat in range(PLAYER_COUNT):
+            predicted = rnd.predictions[seat]
+            if predicted is None:
+                predicted = 0
+            players.append(
+                PlayerRoundResult(
+                    name=ROUND_PLAYER_NAMES[seat],
+                    predicted=predicted,
+                    collected=self.last_round_collected[seat],
+                    difference=self.last_round_penalties[seat],
+                    total=self.match_penalties[seat],
+                )
+            )
+        return self.round_index, players
 
     def status_line(self) -> str:
         if self.ui_phase is UiPhase.MATCH_END:

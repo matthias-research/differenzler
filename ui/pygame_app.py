@@ -86,12 +86,10 @@ def run() -> None:
             session.trick_winner_seat(),
         )
         if session.needs_human_prediction():
-            prediction_dialog.draw(screen)
-        elif summary := session.human_round_summary():
-            round_number, predicted, collected, difference = summary
-            round_summary_dialog.draw(
-                screen, round_number, predicted, collected, difference
-            )
+            prediction_dialog.draw(screen, session.trump_farbe(), images["suits"])
+        elif summary := session.round_summary():
+            round_number, players = summary
+            round_summary_dialog.draw(screen, round_number, players)
         pygame.display.flip()
         clock.tick(60)
 
